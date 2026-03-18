@@ -49,7 +49,7 @@ virtualmachines:
     bootloader: efi
     memory: "4G"
     cores: 2
-    image_size: "20G"              # Size of main disk
+    image_size: "30G"              # Size of main disk
     tags:
       - key: "AnsibleGroup"
         value: "bastions"
@@ -58,9 +58,6 @@ virtualmachines:
     packages:                       # Optional
       - package1
       - package2
-    disks:                          # Optional additional disks
-      - name: disk-name
-        size: 5G
 ```
 
 **Key points:**
@@ -68,9 +65,10 @@ virtualmachines:
 - Image must be `"rhel-10-0-07-09-25-3"`
 - Must include `bootloader: efi`
 - Use `image_size` for the main disk size (do NOT define a separate root disk)
-- Memory and sizes use quoted strings with units: `"4G"`, `"20G"`, `5G`
+- Memory and sizes use quoted strings with units: `"4G"`, `"20G"`, `"30G"`
 - Always include the `AnsibleGroup: bastions` tag
 - Networks is just `- default` (simple list format)
+- **IMPORTANT**: Additional disks (via `disks:` section) may not work as expected - if you need more disk space, increase `image_size` instead
 
 ### networks.yaml Format
 
@@ -216,6 +214,7 @@ When asked to create a new lab:
 ❌ **DON'T:**
 - Use `instances:` as top-level key (use `virtualmachines:`)
 - Define a separate "root" disk (use `image_size:` instead)
+- Try to add additional disks via `disks:` section (doesn't work reliably - increase `image_size` instead)
 - Specify subnet/gateway/dhcp in networks.yaml
 - Use `port:` and `path:` for terminal tabs (use `url: /wetty`)
 - Forget the `AnsibleGroup: bastions` tag
@@ -224,13 +223,24 @@ When asked to create a new lab:
 ✅ **DO:**
 - Reference existing labs for patterns
 - Use quoted strings for memory/size values
+- Increase `image_size` if you need more disk space (e.g., "30G" instead of "20G")
 - Keep networks.yaml minimal
 - Make scripts executable
 - Use clear pass/fail messages in validation scripts
 
+## LVM and Storage Scenarios
+
+If creating a lab that involves LVM expansion or disk management:
+
+- **Use a single larger disk** with increased `image_size` (e.g., "30G")
+- **Work within the existing root VG** - create small logical volumes and leave free space in the VG
+- **Example approach**: For a 30GB disk, the system will use ~20GB, leaving ~10GB free in the VG for student exercises
+- See `zt-filesystem-troubleshooting/setup-automation/setup-rhel.sh` for an example of creating a small LV with plenty of VG free space
+
 ## Reference Labs
 
 - **zt-filesystem-troubleshooting** - Complete example with all correct patterns (created 2026-03-18)
+  - Demonstrates single-disk LVM approach with VG free space for expansion exercises
 - **zt-file-access-policy** - Good example of correct configuration
 - **zt-openscap** - Another reference for proper structure
 
