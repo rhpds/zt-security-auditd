@@ -4,7 +4,7 @@ egress:
   - ports:
       - protocol: TCP
         port: 443
-ingress:
+#ingress:
 # For Cockpit
 #  - ports:
 #      - protocol: TCP
