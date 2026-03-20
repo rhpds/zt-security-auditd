@@ -28,3 +28,16 @@ virtualmachines:
 #        targetPort: 9090
 #        tls: true
 #        tls_termination: Edge
+    disks:
+      - metadata:
+          name: "rhel-lvm-INSTANCEGUID"
+        spec:
+          source:
+            blank: {}
+          pvc:
+            accessModes:
+              - ReadWriteMany
+            volumeMode: Block
+            resources:
+              requests:
+                storage: "5G"
