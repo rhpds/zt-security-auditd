@@ -312,7 +312,7 @@ This makes things much easier to search for.
 == Step 4: Enabling Preconfigured Rules
 
 A number of preconfigured audit filter rules are provided with Red Hat
-Enterprise Linux. You can find them in `/usr/share/audit/sample-rules/`. These filter
+Enterprise Linux. You can find them in `/usr/share/audit-rules/`. These filter
 rules can be enabled by copying them to the system’s audit filter rule
 directory, regenerating the filter configuration, and loading the resulting
 filter rule configuration into the kernel.
@@ -328,7 +328,7 @@ First lets check to see what sample rules come with RHEL.
 
 [source,bash,role="execute",subs=attributes+]
 ----
-ls /usr/share/audit/sample-rules/
+ls /usr/share/audit-rules/
 ----
 
 Then for this lab we want to remove any rules that are currenty enabled.
@@ -341,13 +341,13 @@ sudo rm /etc/audit/rules.d/*
 Now lets grab some examples and put them into the 
 [source,bash,role="execute",subs=attributes+]
 ----
-sudo cp /usr/share/audit/sample-rules/10-base-config.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/10-base-config.rules /etc/audit/rules.d/
 
-sudo cp /usr/share/audit/sample-rules/30-stig.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/30-stig.rules /etc/audit/rules.d/
 
-sudo cp /usr/share/audit/sample-rules/31-privileged.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/31-privileged.rules /etc/audit/rules.d/
 
-sudo cp /usr/share/audit/sample-rules/99-finalize.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/99-finalize.rules /etc/audit/rules.d/
 
 sudo augenrules --load
 
