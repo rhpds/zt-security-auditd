@@ -22,6 +22,18 @@ AuditD logs its records in dedicated log files, usually located at `/var/log/aud
 .*Goal*
 * Become familiar with the auditing capabilities of Red Hat^(R)^ Enterprise Linux^(R)^ (RHEL)
 
+== Step 0: Install Auditd
+
+The audit package is installed by default on Red Hat Enterprise Linux (RHEL) 7 and above. If it is not installed, add it with the following command:
+
+[source,bash,role="execute",subs=attributes+]
+----
+
+sudo dnf install audit -y
+
+----
+
+
 == Step 1: Configuring the Audit Daemon and Kernel
 
 There are two main audit components in Red Hat Enterprise Linux: the audit
