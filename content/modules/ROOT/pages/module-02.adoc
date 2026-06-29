@@ -7,7 +7,7 @@
 
 # High Level Overview of AuditD
 
-AuditD is an integral component of the Linux audit subsystem, responsible for managing and logging security-related events in RHEL 9 systems. Its primary role is to monitor and record system activities, providing valuable insights into potential security breaches or policy violations. Through configuration files (`.rules`) and command-line utilities (`auditctl`), AuditD can be customized to capture specific events based on user-defined rules and priorities.
+AuditD is an integral component of the Linux audit subsystem, responsible for managing and logging security-related events in RHEL systems. Its primary role is to monitor and record system activities, providing valuable insights into potential security breaches or policy violations. Through configuration files (`.rules`) and command-line utilities (`auditctl`), AuditD can be customized to capture specific events based on user-defined rules and priorities.
 
 AuditD logs its records in dedicated log files, usually located at `/var/log/audit/audit.log`, where administrators can analyze them using various tools (e.g., `ausearch` or `aulast`). By leveraging AuditD, organizations can enforce accountability and compliance with security policies and regulatory requirements.
 
@@ -33,7 +33,7 @@ We first need to understands what comes by default.
 When the audit daemon is started during the boot process, it reads its
 configuration information from the file `/etc/audit/auditd.conf`.
 
-Lets take a look at a default RHEL 9.5 config
+Lets take a look at a default RHEL config
 
 [source,bash,role="execute",subs=attributes+]
 ----
