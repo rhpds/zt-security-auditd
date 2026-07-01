@@ -14,7 +14,7 @@ lab:
       - "Understanding audit log structure and record types"
       - "Writing custom audit rules for specific security requirements"
       - "Generating comprehensive security reports with aureport"  
-    use_case: "Get familliar with Auditing for RHEL"
+    use_case: "Get familliar with Auditing on RHEL"
     time_to_complete: "30" # time in minutes
     
   # Git references for deployment
