@@ -1,0 +1,52 @@
+# lab-metadata.yml
+# Single Point of Truth for Lab Information
+
+lab:
+  name: "Security: AuditD Lab"
+  shortname: "zt-security-auditd"
+  maintainer: "Joshua Loscar (jloscar@redhat.com)" 
+  
+  description:
+    summary: "This hands-on lab teaches you how to configure and use the Linux Audit framework (auditd) for security monitoring and compliance in Red Hat Enterprise Linux."
+    goal: "You will be able to deploy and manage application control with FAPolicyd on Red Hat Enterprise Linux systems."
+    concepts:
+      - "Installing and configuring the AuditD daemon"
+      - "Understanding audit log structure and record types"
+      - "Writing custom audit rules for specific security requirements"
+      - "Generating comprehensive security reports with aureport"  
+    use_case: "Get familliar with Auditing for RHEL"
+    time_to_complete: "30" # time in minutes
+    
+  # Git references for deployment
+  git_ref:
+    production: "prod"
+    development: "dev"
+
+# DYNAMIC EXTRACTION SOURCES:
+# ===========================
+#
+# GENERATED FILES:
+# description.adoc: Generated from lab.description (goal, concepts, use_case)
+# README.md: Generated from configuration extraction (maintainer, summary, instances, networks, firewall)
+# dev.yaml: Generated using git_ref.development
+# prod.yaml: Generated using git_ref.production
+#
+# Example usage:
+# lab:
+#   name: "Red Hat OpenShift Networking Basics"
+#   shortname: "zt-networking-basics"
+#   
+#   description:
+#     summary: "Learn the fundamentals of networking in Red Hat OpenShift"
+#     goal: "Understand OpenShift networking concepts and configuration"
+#     concepts:
+#       - "OpenShift Services"
+#       - "Routes and Ingress"
+#       - "Network Policies"
+#     use_case: "Configure secure networking for containerized applications"
+#   
+#   git_ref:
+#     production: "prod"
+#     development: "dev"
+#
+#   maintainer: "Wilson Harris (wharris@redhat.com)"
