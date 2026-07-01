@@ -1,2 +1,3 @@
 #!/bin/sh
-echo "Validated module called module-03" >> /tmp/progress.log
+echo "Validating module called module-03 (stub)" >> /tmp/progress.log
+exit 0

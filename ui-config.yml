@@ -5,13 +5,23 @@ antora:
   dir: www
   modules:
     - name: module-01
-      label: "Writing your lab"
-      solveButton: true
+      label: "Installation & Configuration"
+      solveButton: false
     - name: module-02
-      label: "Antora"
-      solveButton: true
+      label: "Understanding Audit Logs"
+      solveButton: false
     - name: module-03
-      label: "Tabs"
+      label: "Creating Watch Rules"
+      solveButton: false
+    - name: module-04
+      label: "Preconfigured Rules"
+      solveButton: false
+    - name: module-05
+      label: "Custom Rule Creation"
+      solveButton: false
+    - name: module-06
+      label: "Generating Reports"
+      solveButton: false
 
 tabs:
   - name: ">_ terminal"

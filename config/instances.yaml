@@ -12,7 +12,8 @@ virtualmachines:
     networks:
       - default
     packages:
-      - httpd
+      - audit
+      - audit-libs
 # For cockpit
 #    services:
 #      - name: cockpit

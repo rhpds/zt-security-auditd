@@ -1,39 +1,99 @@
-= Writing your lab
+= Installation & Configuration
 
-== Variables
+== Overview
 
-The `lab_name` var, known as an asciidoc attribute, is set in `site.yml` and can be used to set the lab_name (Example: {lab_name}) or title of your content.
-They are both free to change its value and if you prefer to use a different var name, you can change the value of `lab_name`, for example to `title` in `site.yml` and then reference it in your content as `\{site-title}` (Ex: {site-title}).
+Welcome to the AuditD Security Auditing lab! In this hands-on lab, you'll learn how to configure and use the Linux Audit framework (auditd) to monitor and track security-relevant events on your RHEL system.
 
-Example:
-[source,asciidoc]
+AuditD is a powerful tool that provides detailed logging of system calls, file access, authentication attempts, and other security events. It's essential for:
+
+* Security compliance (STIG, PCI-DSS, HIPAA)
+* Forensic investigation
+* Detecting unauthorized access
+* Monitoring administrative actions
+
+[NOTE]
+====
+This lab uses RHEL 10, where the audit package comes pre-installed. You'll configure it to meet your security requirements.
+====
+
+== Step 1: Verify AuditD Installation
+
+First, let's verify that the audit package is installed on your system.
+
+[source,bash,role=execute]
 ----
-{my_var}
+dnf list installed audit
 ----
 
-Variable rendered:
+You should see the audit package listed. The audit daemon is a critical security component in RHEL.
 
-{my_var}
+== Step 2: Review Default Configuration
 
-== Inserting Images
+The audit daemon reads its configuration from `/etc/audit/auditd.conf` at boot time. Let's examine the default settings:
 
-To display an image in your Antora documentation, place the image file in the `assets/images/` folder of the module, then reference it using the `image::[]` macro
-
-=== Basic Syntax
-
-[source,asciidoc]
+[source,bash,role=execute]
 ----
-image::example-image.png[Example Image, width=100, height=100]
+sudo cat /etc/audit/auditd.conf
 ----
 
-This will render the `example-image.png` image as it follows:
+This configuration file controls various aspects of audit logging, including:
 
-image::example-image.png[Example Image, width=100, height=100]
+* **log_file** - Where audit logs are stored (default: `/var/log/audit/audit.log`)
+* **max_log_file** - Maximum size of a single log file
+* **num_logs** - Number of log files to retain
+* **space_left** - Threshold for disk space warnings
+* **admin_space_left** - Critical disk space threshold
 
-=== Understanding the Antora Configuration
+[TIP]
+====
+The `space_left` parameter is particularly important for production systems. When available disk space reaches this threshold, auditd can trigger alerts or take defensive actions.
+====
 
-This lab explains the purpose and structure of the YAML configuration used in an Antora-based documentation site.
+== Step 3: Modify Configuration Settings
 
-=== Basic Structure
+Let's create a backup of the configuration and then modify a setting to demonstrate configuration management.
 
-The configuration is written in YAML `ui-config.yml` and includes two main sections: `antora` and `tabs`. Click next to know more.
+[source,bash,role=execute]
+----
+sudo cp /etc/audit/auditd.conf /etc/audit/auditd.conf.backup
+----
+
+Now let's increase the `space_left` threshold from 75 MB to 5120 MB (5 GB):
+
+[source,bash,role=execute]
+----
+sudo sed -i 's/space_left = 75/space_left = 5120/' /etc/audit/auditd.conf
+----
+
+== Step 4: Restart AuditD Service
+
+After making configuration changes, we need to restart the audit daemon to apply them:
+
+[source,bash,role=execute]
+----
+sudo service auditd condrestart
+----
+
+Verify the service is running:
+
+[source,bash,role=execute]
+----
+sudo service auditd status
+----
+
+[IMPORTANT]
+====
+The audit daemon is a special service that doesn't use systemctl for restart operations due to security requirements. Always use the `service` command with auditd.
+====
+
+== Summary
+
+In this module, you've:
+
+* Verified the AuditD installation
+* Reviewed the default configuration in `/etc/audit/auditd.conf`
+* Created a configuration backup
+* Modified the disk space threshold setting
+* Restarted the audit service to apply changes
+
+Click "Next" to learn about understanding audit log files in the next module.

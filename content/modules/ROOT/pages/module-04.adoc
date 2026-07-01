@@ -1,0 +1,118 @@
+= Preconfigured Rules
+
+== Overview
+
+RHEL includes several sets of preconfigured audit rules designed to meet various compliance standards, including STIG (Security Technical Implementation Guide). These rules provide comprehensive security monitoring without requiring you to write rules from scratch.
+
+== Step 1: View Available Sample Rules
+
+RHEL ships with sample audit rule sets in `/usr/share/audit-rules/`. Let's see what's available:
+
+[source,bash,role=execute]
+----
+ls /usr/share/audit-rules/
+----
+
+You'll see several rule files:
+
+* **10-base-config.rules** - Basic kernel configuration
+* **30-stig.rules** - STIG-compliant security rules
+* **31-privileged.rules** - Monitors privileged command execution
+* **99-finalize.rules** - Finalizes audit configuration
+* And others for specific compliance frameworks
+
+[NOTE]
+====
+The numbers in the filenames (10, 30, 31, 99) determine the loading order. Lower numbers load first.
+====
+
+== Step 2: Remove Existing Rules
+
+Before applying the sample rules, let's clear any existing custom rules:
+
+[source,bash,role=execute]
+----
+sudo rm -f /etc/audit/rules.d/*
+----
+
+[IMPORTANT]
+====
+This removes all rules from `/etc/audit/rules.d/`. Only do this in a lab environment or when you're intentionally replacing all audit rules.
+====
+
+== Step 3: Copy STIG-Compliant Rules
+
+Now let's copy the recommended STIG-compliant rule set:
+
+[source,bash,role=execute]
+----
+sudo cp /usr/share/audit-rules/10-base-config.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/30-stig.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/31-privileged.rules /etc/audit/rules.d/
+sudo cp /usr/share/audit-rules/99-finalize.rules /etc/audit/rules.d/
+----
+
+== Step 4: Load the Rules
+
+After copying rule files to `/etc/audit/rules.d/`, we need to load them into the running kernel:
+
+[source,bash,role=execute]
+----
+sudo augenrules --load
+----
+
+The `augenrules` command:
+* Reads all `.rules` files from `/etc/audit/rules.d/`
+* Merges them in numerical order
+* Generates `/etc/audit/audit.rules`
+* Loads the rules into the kernel
+
+== Step 5: Verify Loaded Rules
+
+Let's verify that the rules were loaded successfully:
+
+[source,bash,role=execute]
+----
+sudo auditctl -l | head -30
+----
+
+You should see many rules now active, including:
+
+* File access monitoring for critical system files
+* User and group management monitoring
+* Network configuration changes
+* Privileged command execution tracking
+* And many more security-relevant events
+
+[TIP]
+====
+The STIG rules are comprehensive and designed for high-security environments. They monitor:
+
+* Changes to `/etc/passwd`, `/etc/group`, `/etc/shadow`
+* Modifications to audit configuration itself
+* System calls that could compromise security
+* Privileged operations and sudo usage
+====
+
+== What These Rules Monitor
+
+The STIG rules you just loaded track:
+
+* **User Account Changes** - Creation, deletion, or modification of user accounts
+* **Authentication Events** - Login attempts (successful and failed)
+* **File Permissions** - Changes to file ownership or permissions
+* **Network Configuration** - Firewall rules, network interface changes
+* **Kernel Modules** - Loading or unloading of kernel modules
+* **Privileged Commands** - Execution of setuid/setgid programs
+
+== Summary
+
+In this module, you've learned:
+
+* Where to find preconfigured audit rules (`/usr/share/audit-rules/`)
+* How to copy STIG-compliant rules to `/etc/audit/rules.d/`
+* How to use `augenrules --load` to apply rule changes
+* How to verify loaded rules with `auditctl -l`
+* What types of events the STIG rules monitor
+
+Click "Next" to learn how to create your own custom audit rules.

@@ -1,2 +1,3 @@
 #!/bin/sh
-echo "Solved module called module-03" >> /tmp/progress.log
+echo "Solving module called module-03 (stub)" >> /tmp/progress.log
+exit 0

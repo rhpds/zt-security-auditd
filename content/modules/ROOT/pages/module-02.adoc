@@ -1,547 +1,130 @@
-# Auditing with AuditD in Red Hat Enterprise Linux (RHEL) 
+= Understanding Audit Logs
 
-## Objective: By the end of this lab, you will understand the nomenclature associated with AuditD, comprehend its functionality and purpose in RHEL, and be able to test for AuditD controls.
+== Overview
 
+Audit logs contain detailed records of security-relevant events on your system. Understanding how to read and interpret these logs is essential for security monitoring and compliance.
 
----
+== Step 1: Locate Audit Log Files
 
-# High Level Overview of AuditD
+Audit logs are stored in `/var/log/audit/`. Let's examine this directory:
 
-AuditD is an integral component of the Linux audit subsystem, responsible for managing and logging security-related events in RHEL systems. Its primary role is to monitor and record system activities, providing valuable insights into potential security breaches or policy violations. Through configuration files (`.rules`) and command-line utilities (`auditctl`), AuditD can be customized to capture specific events based on user-defined rules and priorities.
-
-AuditD logs its records in dedicated log files, usually located at `/var/log/audit/audit.log`, where administrators can analyze them using various tools (e.g., `ausearch` or `aulast`). By leveraging AuditD, organizations can enforce accountability and compliance with security policies and regulatory requirements.
-
-
----
-
-= Lab 3: Auditing on Red Hat Enterprise Linux
-
-.*Lab Length*
-* Medium/Average (~15 mins)
-
-.*Goal*
-* Become familiar with the auditing capabilities of Red Hat^(R)^ Enterprise Linux^(R)^ (RHEL)
-
-== Step 0: Install Auditd
-
-The audit package is installed by default on Red Hat Enterprise Linux (RHEL) 7 and above. If it is not installed, add it with the following command:
-
-[source,bash,role="execute",subs=attributes+]
-----
-
-sudo dnf install audit -y
-
-----
-
-
-== Step 1: Configuring the Audit Daemon and Kernel
-
-There are two main audit components in Red Hat Enterprise Linux: the audit
-daemon and the kernel itself. In this section, you configure both.
-
-
-We first need to understands what comes by default.
-
-When the audit daemon is started during the boot process, it reads its
-configuration information from the file `/etc/audit/auditd.conf`.
-
-Lets take a look at a default RHEL config
-
-[source,bash,role="execute",subs=attributes+]
-----
-
-sudo cat /etc/audit/auditd.conf
-
-----
-
-It should show something close to this
-
-----
-#
-# This file controls the configuration of the audit daemon
-#
-
-local_events = yes
-write_logs = yes
-log_file = /var/log/audit/audit.log
-log_group = root
-log_format = ENRICHED
-flush = INCREMENTAL_ASYNC
-freq = 50
-max_log_file = 8
-num_logs = 5
-priority_boost = 4
-name_format = NONE
-##name = mydomain
-max_log_file_action = ROTATE
-space_left = 75
-space_left_action = SYSLOG
-verify_email = yes
-action_mail_acct = root
-admin_space_left = 50
-admin_space_left_action = SUSPEND
-disk_full_action = SUSPEND
-disk_error_action = SUSPEND
-use_libwrap = yes
-##tcp_listen_port = 60
-tcp_listen_queue = 5
-tcp_max_per_addr = 1
-##tcp_client_ports = 1024-65535
-tcp_client_max_idle = 0
-transport = TCP
-krb5_principal = auditd
-##krb5_key_file = /etc/audit/audit.key
-distribute_network = no
-q_depth = 2000
-overflow_action = SYSLOG
-max_restarts = 10
-plugin_dir = /etc/audit/plugins.d
-end_of_event_timeout = 2
-
-----
-
-Before we start modifing the default config, lets back a backup.
-
-[source,bash,role="execute",subs=attributes+]
-----
-
-sudo cp /etc/audit/auditd.conf /etc/audit/auditd.conf.backup
-
-----
-
-We are only going to change 1 setting in the default configs,
-We will increase the amount of free space left on the disk for which an action that is set in the space_left_action parameter is triggered. Must be set to a number that gives the administrator enough time to respond and free up disk space.
-
-space_left = 5120
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo sed -i 's/space_left = 75/space_left = 5120/' /etc/audit/auditd.conf
-----
-
-Now we are going to restart the auditd rules
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo service auditd condrestart
-----
-
-We can now see it is running with our new settings 
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo service auditd state
-----
-
-== Step 2: Understanding Audit Log Files
-
-By default, the Audit system stores log entries in the /var/log/audit/audit.log file; if log rotation is enabled, rotated audit.log files are stored in the same directory.
-
-So lets take a look at the current auditd directory.
-
-[source,bash,role="execute",subs=attributes+]
+[source,bash,role=execute]
 ----
 sudo ls -lahn /var/log/audit/
 ----
 
-Depending on how long your machine as been on, You could have an output that has a few files with numbers at the end.
+The primary log file is `audit.log`. Depending on your configuration, you may see rotated logs like `audit.log.1`, `audit.log.2`, etc.
 
+== Step 2: Examine Log Contents
+
+Let's look at recent audit log entries:
+
+[source,bash,role=execute]
 ----
-total 34M
-drwx------.  2 0 0   99 May  4 20:18 .
-drwxr-xr-x. 21 0 0 4.0K May  7 00:00 ..
--rw-------.  1 0 0 1.3M May  8 16:08 audit.log
--r--------.  1 0 0 8.1M May  4 20:18 audit.log.1
--r--------.  1 0 0 8.1M Mar 12 20:54 audit.log.2
--r--------.  1 0 0 8.1M Jan 21 09:46 audit.log.3
--r--------.  1 0 0 8.1M Jan 15 14:51 audit.log.4
+sudo tail -20 /var/log/audit/audit.log
 ----
 
-You can see how the log files will rotate, and there are some files with numbers attached to the end of the ".log"
+Audit log entries can seem cryptic at first, but they follow a consistent structure. Each entry contains:
 
-Depending on how active your users are or the data that is being written on that machine.
+* **Timestamp** - When the event occurred
+* **Record Type** - What kind of event (SYSCALL, PATH, USER_AUTH, etc.)
+* **Event-specific fields** - Details about the event
 
-But we are just looking at the defaults.
+[TIP]
+====
+Don't be intimidated by the raw log format! The `ausearch` and `aureport` tools (which we'll use later) make it much easier to find and interpret audit events.
+====
 
-There is a lot of data in these log files,
-and you can find out about all the field in our documentation here.
-https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/auditing-the-system_security-hardening#understanding-audit-log-files_auditing-the-system
+== Step 3: Understanding Key Record Types
 
-Let take a look at the files.
+Audit logs use different record types to categorize events. Here are the most important ones:
 
-[source,bash,role="execute",subs=attributes+]
+=== SYSCALL Records
+
+SYSCALL records capture system call events. They include:
+
+* **uid** - User ID who made the call
+* **tty** - Terminal if interactive
+* **success** - Whether the call succeeded (yes/no)
+* **exe** - The executable that made the call
+* **comm** - Command name
+
+Example:
+[source,text]
 ----
-sudo cat /var/log/audit/audit.log
-----
-
-If you scroll your output and or down you should see a few "types" of data collected.
-
-=== First Record is is SYSCALL
-
-**type=SYSCALL**
-The type field contains the type of the record. In this example, the SYSCALL value specifies that this record was triggered by a system call to the kernel.
-
-**uid=1000**
-The uid field records the user ID of the user who started the analyzed process. The user ID can be interpreted into user names with the following command: ausearch -i --uid UID
-
-**tty=pts0**
-The tty field records the terminal from which the analyzed process was invoked.
-
-**success=no**
-The success field records whether the system call recorded in that particular event succeeded or failed. In this case, the call did not succeed.
-
-**exe="/bin/cat"**
-The exe field records the path to the executable that was used to invoke the analyzed process.
-
-
-you also have the option to look up user id (uid) and Group ID (gid).
-
-
-=== Second Record is CWD
-
-**type=CWD**
-In the second record, the type field value is CWD — current working directory. This type is used to record the working directory from which the process that invoked the system call specified in the first record was executed.
-
-**cwd="/home/user_name"**
-The cwd field contains the path to the directory in which the system call was invoked.
-
-=== Third Record is PATH
-
-**type=PATH**
-In the third record, the type field value is PATH. An Audit event contains a PATH-type record for every path that is passed to the system call as an argument. In this Audit event, only one path (/etc/ssh/sshd_config) was used as an argument.
-
-**obj=system_u:object_r:etc_t:s0**
-The obj field records the SELinux context with which the recorded file or directory was labeled at the time of execution.
-
-=== Forth Record is PROCTITLE
-
-**type=PROCTITLE**
-The type field contains the type of the record. In this example, the PROCTITLE value specifies that this record gives the full command-line that triggered this Audit event, triggered by a system call to the kernel.
-
-This data can be hard to sort through, so later we will talk about running a easeier to read report.
-
-
-== Step 3: Configuring the Audit Daemon
-
-You can set a temp Auditd rule to watch a file.
-
-So lets set a temp file up for this example as a regular user "rhel"
-
-[source,bash,role="execute",subs=attributes+]
-----
-touch /home/rhel/log_everything_and_the_kitchen_sink.txt
+type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=2 success=yes exit=3
+  a0=7ffe1234abcd a1=0 a2=0 a3=7ffe1234def0 items=1 ppid=1234 pid=5678
+  auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0
+  tty=pts0 ses=1 comm="cat" exe="/usr/bin/cat" key=(null)
 ----
 
-[source,bash,role="execute",subs=attributes+]
+=== CWD Records
+
+CWD (Current Working Directory) records show where a process was running when it triggered an audit event:
+
+[source,text]
 ----
-sudo echo "Logging everything, including the kitchen sink, because why not? Let's see what happens!" | sed -e '' > /home/rhel/log_everything_and_the_kitchen_sink.txt
-----
-
-Set set up a temp rule to watch what happens to this file
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo auditctl -w /home/rhel/log_everything_and_the_kitchen_sink.txt -S all -k rhel-docs-temp
----- 
-
-**auditctl** 
-This is the command-line utility used to interact with the Linux Audit daemon. It allows you to configure audit rules and manage the audit system.
-
-**-w** 
-This option specifies the file to be watched. In this case, it is /home/rhel/log_everything_and_the_kitchen_sink.txt. The -w option stands for "watch."
-
-**-S all**
-This option specifies the system calls to be watched. The all keyword means that all system calls will be watched for the specified file.
-
-**-k rhel-docs-temp**
-This option specifies a key for the audit rule. The key rhel-docs is a user-defined string that can be used to filter and identify audit logs related to this specific rule. It helps in categorizing and managing audit logs more effectively. In this example we labled it "rhel-doc-temp".
-
-lets look at the file
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo cat /home/rhel/log_everything_and_the_kitchen_sink.txt
+type=CWD msg=audit(1234567890.123:456): cwd="/home/rhel"
 ----
 
-Lets take a look at the log file now
+=== PATH Records
 
-you can look at the /var/log/audit/audit.log 
-or you could use the audit search tool
+PATH records capture file paths that were accessed or passed as arguments to system calls:
 
-[source,bash,role="execute",subs=attributes+]
+[source,text]
 ----
-sudo ausearch -f /home/rhel/log_everything_and_the_kitchen_sink.txt
-----
-
-
-**ausearch**
-This is a command-line tool provided by the auditd package, which is used to search the audit logs. Audit logs are used to record security-relevant events on the system.
-
-**-f**
-option specifies the file to search for within the audit logs. In this case, it is looking for entries related to the file /home/rhel/log_everything_and_the_kitchen_sink.txt, which is located in the home directory of the user running the command.
-
-The output will be something like this
-
-----
-time->Thu May  8 17:00:33 2025
-type=PROCTITLE msg=audit(1746748833.779:1924): proctitle=636174002F726F6F742F6C6F675F65766572797468696E675F616E645F7468655F6B69746368656E5F73696E6B2E747874
-type=PATH msg=audit(1746748833.779:1924): item=0 name="/home/rhel/log_everything_and_the_kitchen_sink.txt" inode=544362616 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:admin_home_t:s0 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
-type=CWD msg=audit(1746748833.779:1924): cwd="/var/log/audit"
-type=SYSCALL msg=audit(1746748833.779:1924): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffc7bc26671 a2=0 a3=0 items=1 ppid=276005 pid=279449 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts3 ses=3 comm="cat" exe="/usr/bin/cat" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key="rhel-docs"
-
+type=PATH msg=audit(1234567890.123:456): item=0 name="/etc/passwd"
+  inode=12345 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00
+  nametype=NORMAL
 ----
 
-You can see the system time when the file was accessed
+=== PROCTITLE Records
 
-----
-time->Thu May  8 17:00:33 2025
-----
+PROCTITLE records show the full command-line that triggered the audit event:
 
-Then you can see the command that was run
----- 
-comm="cat" exe="/usr/bin/cat" 
+[source,text]
+----
+type=PROCTITLE msg=audit(1234567890.123:456): proctitle=2F7573722F62696E2F636174002F6574632F706173737764
 ----
 
-You can also see the key that you assigned the files you wanted to watch
+[NOTE]
+====
+PROCTITLE values are hex-encoded. The `ausearch` tool automatically decodes them for readability.
+====
+
+== Step 4: Search for Specific Events
+
+Let's use `ausearch` to find specific events. For example, search for authentication events:
+
+[source,bash,role=execute]
 ----
- key="rhel-docs-temp"
-----
-
-This makes things much easier to search for.
-
-== Step 4: Enabling Preconfigured Rules
-
-A number of preconfigured audit filter rules are provided with Red Hat
-Enterprise Linux. You can find them in `/usr/share/audit-rules/`. These filter
-rules can be enabled by copying them to the system’s audit filter rule
-directory, regenerating the filter configuration, and loading the resulting
-filter rule configuration into the kernel.
-
-In this section, you enable some basic audit filters designed to help
-administrators meet the U.S. Department of Defense Security
-Technical Implementation Guide (STIG) for Red Hat Enterprise Linux.
-
-While logged in to the *audit.example.com* system as *root*, enable a number of
-pre-defined audit filters:
-
-First lets check to see what sample rules come with RHEL.
-
-[source,bash,role="execute",subs=attributes+]
-----
-ls /usr/share/audit-rules/
+sudo ausearch -m USER_AUTH -ts today | head -30
 ----
 
-Then for this lab we want to remove any rules that are currenty enabled.
+This searches for:
+* `-m USER_AUTH` - Authentication record type
+* `-ts today` - Events from today
+* `head -30` - Shows first 30 lines
 
-[source,bash,role="execute",subs=attributes+]
-----
-sudo rm /etc/audit/rules.d/*
-----
+[TIP]
+====
+The `ausearch` tool supports many search criteria:
 
-Now lets grab some examples and put them into the 
-[source,bash,role="execute",subs=attributes+]
-----
-sudo cp /usr/share/audit-rules/10-base-config.rules /etc/audit/rules.d/
+* `-m` - Message type (USER_AUTH, SYSCALL, etc.)
+* `-ts` - Start time (today, recent, yesterday, or a specific timestamp)
+* `-te` - End time
+* `-k` - Search by key (we'll create keyed rules later)
+* `-f` - Search by filename
+* `-ui` - Search by user ID
+====
 
-sudo cp /usr/share/audit-rules/30-stig.rules /etc/audit/rules.d/
+== Summary
 
-sudo cp /usr/share/audit-rules/31-privileged.rules /etc/audit/rules.d/
+In this module, you've learned:
 
-sudo cp /usr/share/audit-rules/99-finalize.rules /etc/audit/rules.d/
+* Where audit logs are stored (`/var/log/audit/audit.log`)
+* The structure of audit log entries
+* Key record types: SYSCALL, CWD, PATH, and PROCTITLE
+* How to use `ausearch` to find specific events
 
-sudo augenrules --load
-
-----
-
-The `augenrules` tool combines all of the `*.rules` files located in
-`/etc/audit/rules.d` into the `/etc/audit/audit.rules` file and loads them
-using the `auditctl` command. You can remove or rename any of these files
-and rerun the `augenrules --load` command to reconfigure your system.
-
-Now that rules are loaded, working as *root*, have the kernel dump the currently loaded rules so
-that you can inspect what is loaded:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo augenrules --load
-----
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo auditctl -l
-----
-
-Expect to see many audit rules output from the kernel.
-
-== Step 5: Creating Custom Rules
-
-Custom audit filters can be loaded into the kernel using the `auditctl`
-command. The various filter options are explained in the
-link:http://man7.org/linux/man-pages/man8/auditctl.8.html[auditctl(8)^] man page.
-
-Custom audit filters can be made persistent by creating a new file in the
-`/etc/audit/rules.d` directory with the `.rules` file extension. While not
-required, the following naming convention is suggested:
-
-----
-<priority>-<name>.rules
-----
-
-Where the `<priority>` value falls into these categories:
-
-----
-10: Kernel and `auditctl` configuration
-20: Rules that could match general rules but we want a different match
-30: Main rules
-40: Optional rules
-50: Server specific rules
-70: System local rules
-90: Finalize (immutable)
-----
-
-The preconfigured filter rules provide a useful example for how to structure
-your custom audit filter rule files. The basic syntax is that each line is
-a series of arguments passed to the `auditctl` command; lines starting with a
-`#` are treated as comments and ignored.
-
-In this section, you create an audit filter that captures audit
-events created by the `/usr/bin/ping` program. You also configure the
-system to tag all of those events with the `rhkey` key, using the `-k`
-option, to make the search through the audit log easier.  The `-a always,exit` is
-a common way to add audit filter rules; it adds a filter rule to be executed at
-`syscall` exit time. (See the
-link:http://man7.org/linux/man-pages/man8/auditctl.8.html[auditctl(8)^] man page for
-more detail.)
-
-While logged into the *audit.example.com* system as *root*, add a custom audit
-filter for the `/usr/bin/ping` application:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo auditctl -a always,exit -F exe=/usr/bin/ping -k rhkey
-----
-
-As *root*, add a new rule file to `/etc/audit/rules.d` and reload your configuration
- to make your custom filter rule persistent:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo touch /etc/audit/rules.d/70-rhkey_lab.rules
-----
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo vi /etc/audit/rules.d/70-rhkey_lab.rules
-----
-
-Type "i" for insert mode
-
-[source,bash,role="execute",subs=attributes+]
-----
--a always,exit -S all -F exe=/usr/bin/ping -F key=rhkey
-----
-
-Then you will want to save and quit the file, by hitting the "esc" button and then ":wq!"
-
-Then we reload the rules
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo augenrules --load
-
-----
-
-In addition to modifying custom filter rules, you can adjust the base configuration of the audit subsystem in the Linux kernel using `auditctl`.
-
-As *root*, increase the audit backlog buffer to `8192` entries:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo auditctl -b 8192
-----
-
-This setting is confirmed by output similar to the status command.
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo auditctl -l
-----
-
-If you want to make the configuration change persistent, you can
-create a new file in `/etc/audit/rules.d` with the configuration and reload the
-audit rules.
-
-As *root*, make the backlog changes persistent:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo touch /etc/audit/rules.d/15-rhkey_kernel.rules
-
-sudo echo "-b 8192" > /etc/audit/rules.d/15-rhkey_kernel.rules
-
-sudo augenrules --load
-
-sudo auditctl -l
-----
-
-=== Step 6: Generating Reports
-
-Included in the Audit userspace tools are three utilities that can be used to
-generate a number of reports from the audit log: `aureport`, `aulast`, and
-`aulastlog`.  The `aureport` tool can generate a number of different reports,
-all of which are described in the
-link:http://man7.org/linux/man-pages/man8/aureport.8.html[aureport(8)^] man page.
-
-While logged into the *audit.example.com* system as *root*, run the following
-commands to create several audit reports for today's activity:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo aureport --start today --summary
-sudo aureport --start today --summary -i --file
-sudo aureport --start today --summary -i --executable
-sudo aureport --start today --summary -i --login
-----
-
-The `aureport` and `ausearch` tools may be used together if you want to identify who triggered
-a specific audit rule. The strategy is to search for the key that is associated with the audit rule
-and then feed the results to the kind of report you are interested in. This works only if the output
-from `ausearch` is exactly as it is in the logs. To tell `ausearch` to leave the event unaltered,
-pass the `--raw` formatting option.
-
-As *root*, run the following command:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo ausearch --start today -k access --raw | sudo aureport --summary -i --file
-----
-
-The `aulast` tool generates a report similar to the `last` command, except the
-information is collected from the audit log instead of the less reliable `utmp`
-logs. The _aulast(8)_ man page provides details on how to run `aulast`; without
-any options, the output is familiar with the `last` command.
-
-The `aulast` utility can also help you find an `ausearch` command to extract just the audit
-events for a specific login whenever you pass the `--proof` command-line option. This is helpful
-when investigating which programs or files a user accessed during a specific session.
-
-As *root*, examine an example of `aulast` report:
-
-[source,bash,role="execute",subs=attributes+]
-----
-sudo aulast
-
-sudo aulast --proof
-
-----
-
-Similar to `aulast`, `aulastlog` is designed as a replacement for the `lastlog`
-command--the important difference being that `aulastlog` collects data from the
-audit log. The _aulastlog(8)_ man page provides more information, but even running
-`aulastlog` without any options results in a useful report.
-
-As *root*, examine an `aulastlog` report:
-[source,bash,role="execute",subs=attributes+]
-----
-sudo aulastlog
-----
+Click "Next" to learn how to create watch rules in the next module.

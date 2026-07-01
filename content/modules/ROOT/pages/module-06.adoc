@@ -1,0 +1,228 @@
+= Generating Reports
+
+== Overview
+
+Raw audit logs contain valuable security data, but they can be overwhelming. The audit package includes powerful tools for generating human-readable reports from audit data. In this module, you'll learn how to use `aureport` and related tools to extract meaningful insights.
+
+== Understanding Audit Reporting Tools
+
+RHEL provides several tools for analyzing audit data:
+
+* **`aureport`** - Generates summary reports from audit logs
+* **`ausearch`** - Searches for specific events (we've used this already)
+* **`aulast`** - Shows login history from audit logs
+* **`aulastlog`** - Shows last login information
+
+[TIP]
+====
+These audit-based tools are more reliable than traditional utmp-based commands like `last` and `lastlog` because they pull data from audit logs, which are harder to tamper with.
+====
+
+== Step 1: Generate a General Summary
+
+Let's start with a comprehensive summary of today's audit activity:
+
+[source,bash,role=execute]
+----
+sudo aureport --start today --summary
+----
+
+This report shows:
+* Total number of events
+* Breakdown by event type
+* Number of failed events
+* Anomalies detected
+
+== Step 2: File Access Report
+
+Generate a report showing which files were accessed:
+
+[source,bash,role=execute]
+----
+sudo aureport --start today --summary -i --file
+----
+
+The `-i` flag interprets numeric values (UIDs, GIDs, syscalls) into human-readable names.
+
+== Step 3: Executable Report
+
+See which programs were executed:
+
+[source,bash,role=execute]
+----
+sudo aureport --start today --summary -i --executable
+----
+
+This is useful for:
+* Identifying unexpected program execution
+* Tracking privileged command usage
+* Detecting malware or unauthorized tools
+
+== Step 4: Login Report
+
+View authentication and login activity:
+
+[source,bash,role=execute]
+----
+sudo aureport --start today --summary -i --login
+----
+
+This shows:
+* Successful logins
+* Failed login attempts
+* SSH sessions
+* Sudo usage
+
+[IMPORTANT]
+====
+High numbers of failed login attempts could indicate a brute-force attack in progress!
+====
+
+== Step 5: Custom Report by Key
+
+Remember the `rhkey` we used in earlier modules? Let's generate a report for events with that key:
+
+[source,bash,role=execute]
+----
+sudo ausearch --start today -k rhkey --raw | sudo aureport --summary -i --file
+----
+
+This pipeline:
+1. **`ausearch`** finds events with key "rhkey"
+2. **`--raw`** outputs in raw format
+3. **`aureport`** generates a summary report
+4. **`-i --file`** shows file access details
+
+== Step 6: Login History with aulast
+
+The `aulast` command shows login history from audit logs:
+
+[source,bash,role=execute]
+----
+sudo aulast
+----
+
+This displays:
+* Username
+* Terminal or remote host
+* Login time
+* Logout time (or "still logged in")
+* Duration
+
+For more detail, add the `--proof` flag:
+
+[source,bash,role=execute]
+----
+sudo aulast --proof | head -20
+----
+
+This shows the actual audit event IDs that prove each login occurred.
+
+== Step 7: Last Login Information
+
+View the last login for each user:
+
+[source,bash,role=execute]
+----
+sudo aulastlog
+----
+
+[NOTE]
+====
+Unlike the traditional `lastlog` command which reads `/var/log/lastlog`, `aulastlog` derives information from audit logs. This makes it more tamper-resistant and reliable for security forensics.
+====
+
+== Advanced aureport Options
+
+Here are some additional useful `aureport` options:
+
+**Failed events only:**
+[source,bash,role=execute]
+----
+sudo aureport --start today --failed
+----
+
+**Authentication report:**
+[source,bash,role=execute]
+----
+sudo aureport --start today --auth
+----
+
+**Modification events:**
+[source,bash,role=execute]
+----
+sudo aureport --start today --mods
+----
+
+**Anomaly report:**
+[source,bash,role=execute]
+----
+sudo aureport --start today --anomaly
+----
+
+== Time Range Options
+
+All report commands support flexible time ranges:
+
+* `--start today` or `-ts today` - From midnight today
+* `--start recent` or `-ts recent` - Last 10 minutes
+* `--start yesterday` - From midnight yesterday
+* `--start boot` - Since last system boot
+* `--start "04/01/2026 00:00:00"` - Specific date/time
+* `--start today --end now` - Today until now
+
+== Practical Security Scenarios
+
+**Investigate failed login attempts:**
+[source,bash,role=execute]
+----
+sudo aureport --start today --auth --failed -i
+----
+
+**Find who accessed sensitive files:**
+[source,bash,role=execute]
+----
+sudo ausearch -f /etc/shadow -ts today
+----
+
+**Track privileged command execution:**
+[source,bash,role=execute]
+----
+sudo ausearch -k access -ts boot --raw | sudo aureport -x -i
+----
+
+== Summary
+
+In this module, you've learned:
+
+* How to use `aureport` to generate summary reports
+* Key report types: file access, executables, logins
+* How to use `aulast` and `aulastlog` for login tracking
+* How to create custom reports filtered by key
+* Time range options for reports
+* Practical security investigation techniques
+
+== Lab Complete!
+
+Congratulations! You've completed the AuditD Security Auditing lab. You now know how to:
+
+✓ Install and configure AuditD
+✓ Understand and interpret audit logs
+✓ Create watch rules for files and directories
+✓ Deploy STIG-compliant preconfigured rules
+✓ Write custom audit rules for specific requirements
+✓ Generate comprehensive security reports
+
+=== Next Steps
+
+To continue your security journey with RHEL, consider exploring:
+
+* **SELinux** - Mandatory access controls
+* **OpenSCAP** - Security compliance scanning
+* **AIDE** - File integrity monitoring
+* **Firewalld** - Network security
+
+[quote, Security Best Practice]
+____
+"Regular review of audit logs is not just a compliance requirement—it's a critical security practice. Schedule time weekly to review aureport summaries and investigate anomalies."
+____

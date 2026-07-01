@@ -1,29 +1,103 @@
-= Tabs
+= Creating Watch Rules
 
-[source,yaml]
+== Overview
+
+Watch rules allow you to monitor specific files or directories for any access or modification. This is crucial for tracking changes to sensitive files like configuration files, password databases, or critical system binaries.
+
+== Step 1: Create a Test File
+
+Let's create a test file that we'll monitor with audit rules:
+
+[source,bash,role=execute]
 ----
-tabs:
-  - name: ">_ terminal"
-    type: "terminal"
-  - name: "Asciidoc Doc"
-    url: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
-    external: true
+touch /home/rhel/log_everything_and_the_kitchen_sink.txt
 ----
 
-=== Explanation
+Now let's add some content to this file:
 
-- `name`: The label that appears on the tab in the UI.
-- `type`: Defines the tab layout. Options include:
-  - `terminal`: For a single terminal-like block.
-  - `double-terminal`: For a side-by-side terminal view.
-- `url`: Used to link to an external page.
-- `path`: (If no url is defined) The base path where the service will be served, e.g., `/tty`.
-- `port`: (If no url is defined) The port where the service will be served, e.g., `3000`.
-- `external`: If `true`, the link opens in a new tab/window.
+[source,bash,role=execute]
+----
+echo "Logging everything, including the kitchen sink, because why not? Let's see what happens!" > /home/rhel/log_everything_and_the_kitchen_sink.txt
+----
 
-== Resulting UI
+== Step 2: Set Up a Watch Rule
 
-You might see two tabs in your UI:
-- A terminal emulator style display
-- A link to AsciiDoc syntax reference
+Now we'll create an audit rule to watch this file. The `auditctl` command allows us to add rules dynamically:
 
+[source,bash,role=execute]
+----
+sudo auditctl -w /home/rhel/log_everything_and_the_kitchen_sink.txt -S all -k rhel-docs-temp
+----
+
+Let's break down this command:
+
+* **`-w`** - Specifies the file or directory to watch
+* **`-S all`** - Watches all system calls that interact with this file
+* **`-k rhel-docs-temp`** - Assigns a custom key for easy filtering in logs
+
+[TIP]
+====
+The `-k` (key) parameter is extremely useful! It lets you tag audit rules with custom labels, making it easy to search for related events later using `ausearch -k <keyname>`.
+====
+
+== Step 3: Trigger Audit Events
+
+Let's access the file to generate some audit events:
+
+[source,bash,role=execute]
+----
+cat /home/rhel/log_everything_and_the_kitchen_sink.txt
+----
+
+== Step 4: Search Audit Logs for the File
+
+Now let's use `ausearch` to find all audit events related to our watched file:
+
+[source,bash,role=execute]
+----
+sudo ausearch -f /home/rhel/log_everything_and_the_kitchen_sink.txt
+----
+
+You should see audit records showing:
+* When the file was created
+* When it was written to
+* When it was read (from our `cat` command)
+* The user who performed each action
+* The process that accessed the file
+
+[NOTE]
+====
+The `-f` flag searches by filename. You can also use `-k rhel-docs-temp` to search by the key we assigned to this rule.
+====
+
+== Step 5: Search by Key
+
+Let's search using the key we assigned:
+
+[source,bash,role=execute]
+----
+sudo ausearch -k rhel-docs-temp -ts today
+----
+
+This is often more convenient than searching by filename, especially when you have multiple files monitored with the same purpose.
+
+== Understanding Watch Rule Persistence
+
+[IMPORTANT]
+====
+The rule we just created with `auditctl -w` is **temporary**. It will be lost when the system reboots.
+
+In the next modules, we'll learn how to make rules persistent by adding them to `/etc/audit/rules.d/`.
+====
+
+== Summary
+
+In this module, you've learned:
+
+* How to create a watch rule with `auditctl -w`
+* The purpose of the `-S` (system call) and `-k` (key) options
+* How to search audit logs by filename using `ausearch -f`
+* How to search by key using `ausearch -k`
+* That `auditctl` rules are temporary and don't persist across reboots
+
+Click "Next" to learn about preconfigured STIG-compliant audit rules.

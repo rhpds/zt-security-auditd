@@ -4,9 +4,29 @@ USER=rhel
 echo "Adding wheel" > /root/post-run.log
 usermod -aG wheel rhel
 
-echo "Setup vm control01" > /tmp/progress.log
+echo "Setup vm rhel" > /tmp/progress.log
 
-chmod 666 /tmp/progress.log 
+chmod 666 /tmp/progress.log
+
+# Ensure audit package is installed and service is running
+echo "Installing audit packages" >> /tmp/progress.log
+dnf install -y audit audit-libs
+
+echo "Starting auditd service" >> /tmp/progress.log
+systemctl enable --now auditd
+
+echo "Lab setup complete" >> /tmp/progress.log
+
+# To fetch setup files from this lab's git repo at provision time, uncomment:
+# TMPDIR=/tmp/lab-setup-$$
+# git clone --single-branch --branch ${GIT_BRANCH:-main} --no-checkout \
+#   --depth=1 --filter=tree:0 ${GIT_REPO} $TMPDIR
+# git -C $TMPDIR sparse-checkout set --no-cone /setup-files
+# git -C $TMPDIR checkout
+# SETUP_FILES=$TMPDIR/setup-files
+# ... cp $SETUP_FILES/your-file /destination ...
+# rm -rf $TMPDIR
+# Requires GIT_REPO and GIT_BRANCH in setup-automation/main.yml environment block.
 
 #dnf install -y nc
 
