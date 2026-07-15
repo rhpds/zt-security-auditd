@@ -1,17 +1,25 @@
 = AuditD: Security Auditing in RHEL
+:toc:
+:icons: font
+:experimental:
 
-== Lab Overview
+== Objective
+
+By the end of this guided lab exercise, you will be able to:
+
+* Configure auditd for production security monitoring.
+* Interpret raw audit log data.
+* Create targeted audit rules for compliance requirements.
+* Generate actionable security reports.
+* Investigate security events using audit tools.
+
+== Introduction
 
 This hands-on lab teaches you how to configure and use the Linux Audit framework (auditd) for security monitoring and compliance in Red Hat Enterprise Linux.
 
-=== What You'll Learn
+AuditD is a powerful tool that provides detailed logging of system calls, file access, authentication attempts, and other security events. It is essential for security compliance (STIG, PCI-DSS, HIPAA), forensic investigation, detecting unauthorized access, and monitoring administrative actions.
 
-* Installing and configuring the AuditD daemon
-* Understanding audit log structure and record types
-* Creating watch rules to monitor files and directories
-* Deploying STIG-compliant preconfigured audit rules
-* Writing custom audit rules for specific security requirements
-* Generating comprehensive security reports with aureport
+This lab prepares you for real-world security operations including compliance auditing, forensic investigation, threat detection, and change management.
 
 === Prerequisites
 
@@ -19,61 +27,64 @@ This hands-on lab teaches you how to configure and use the Linux Audit framework
 * Understanding of file permissions and user management
 * Familiarity with system administration concepts
 
-=== Lab Environment
-
-* **Operating System**: Red Hat Enterprise Linux 10
-* **Required Packages**: audit, audit-libs (pre-installed)
-* **Estimated Time**: 60-90 minutes
-
 === Lab Modules
 
-1. **Installation & Configuration** - Set up and configure the audit daemon
-2. **Understanding Audit Logs** - Learn to read and interpret audit log entries
-3. **Creating Watch Rules** - Monitor specific files with audit rules
-4. **Preconfigured Rules** - Deploy STIG-compliant rule sets
-5. **Custom Rule Creation** - Write persistent custom audit rules
-6. **Generating Reports** - Use aureport and related tools for security analysis
+. Installation & Configuration — Set up and configure the audit daemon
+. Understanding Audit Logs — Learn to read and interpret audit log entries
+. Creating Watch Rules — Monitor specific files with audit rules
+. Preconfigured Rules — Deploy STIG-compliant rule sets
+. Custom Rule Creation — Write persistent custom audit rules
+. Generating Reports — Use aureport and related tools for security analysis
 
-=== Skills Gained
+== Lab Environment
 
-Upon completing this lab, you will be able to:
+As part of this lab you will have access to 1 machine:
 
-* Configure auditd for production security monitoring
-* Interpret raw audit log data
-* Create targeted audit rules for compliance requirements
-* Generate actionable security reports
-* Investigate security events using audit tools
+* rhel
 
-=== Use Cases
+* **Operating System**: Red Hat Enterprise Linux 10
+* **Required Packages**: `audit`, `audit-libs` (pre-installed)
+* **Estimated Time**: 60–90 minutes
 
-This lab prepares you for:
+=== Environment Diagram
 
-* **Security Compliance** - Meeting STIG, PCI-DSS, HIPAA requirements
-* **Forensic Investigation** - Tracking security incidents
-* **Threat Detection** - Identifying unauthorized access
-* **Change Management** - Auditing administrative actions
-
-== Local Development
-
-To build and preview this lab locally:
-
-[source,bash]
+[source,text]
 ----
-cd zt-security-auditd
-./utilities/lab-build
-./utilities/lab-serve
+                         Lab Environment
+    ┌──────────────────────────────────────────────────────┐
+    │                                                      │
+    │   ┌──────────────┐              ┌──────────────┐    │
+    │   │   bastion    │    SSH       │     rhel     │    │
+    │   │              │─────────────▶│   RHEL 10    │    │
+    │   │    rhel      │              │  rhel, root  │    │
+    │   └──────────────┘              └──────────────┘    │
+    │                                                      │
+    └──────────────────────────────────────────────────────┘
 ----
 
-Then open http://localhost:8080 in your browser.
+You will have a couple of accounts you will have access to.
 
-To stop the server:
-[source,bash]
-----
-./utilities/lab-stop
-----
+*rhel*
 
-To clean build artifacts:
-[source,bash]
-----
-./utilities/lab-clean
-----
+* rhel
+* root
+
+[NOTE]
+====
+*Lab Note: If Using Red Hat Demo System (RHPDS)*
+
+The terminal window to your right is already logged into the lab environment as the `rhel` user via SSH. All steps of this lab are to be completed as the `rhel` user on the bastion server.
+
+When you follow the next steps, you will have instructions followed by a small box with text that is meant to be used in the terminal. In the upper right corner there will be a couple of symbols. It should say something like "BASH", an icon of a clipboard, and an icon of a terminal.
+
+You should also be able to click the terminal icon and the command is then auto-typed into the machine terminal.
+
+Alternatively, you should be able to click the clipboard icon in the code box to copy the command, and you will either use the middle mouse button or right click and paste. The keyboard shortcuts for copy and paste (`Ctrl+C` and `Ctrl+V`) won't work in this environment.
+
+To move to the next step, click the *Next* button.
+====
+
+[NOTE]
+====
+This lab uses RHEL 10, where the `audit` package comes pre-installed. You will configure it to meet your security requirements.
+====
