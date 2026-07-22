@@ -1,7 +1,9 @@
-= AuditD: Security Auditing in RHEL
+= Welcome to Enabling RHEL Security: AuditD 101
 :toc:
 :icons: font
 :experimental:
+
+## Step 1: About This Lab
 
 == Objective
 
@@ -53,11 +55,11 @@ As part of this lab you will have access to 1 machine:
                          Lab Environment
     ┌──────────────────────────────────────────────────────┐
     │                                                      │
-    │   ┌──────────────┐              ┌──────────────┐    │
-    │   │   bastion    │    SSH       │     rhel     │    │
-    │   │              │─────────────▶│   RHEL 10    │    │
-    │   │    rhel      │              │  rhel, root  │    │
-    │   └──────────────┘              └──────────────┘    │
+    │   ┌──────────────┐                                   │
+    │   │   bastion    │                                   │
+    │   │              │                                   │
+    │   │    rhel      │                                   │
+    │   └──────────────┘                                   │
     │                                                      │
     └──────────────────────────────────────────────────────┘
 ----
@@ -84,7 +86,6 @@ Alternatively, you should be able to click the clipboard icon in the code box to
 To move to the next step, click the *Next* button.
 ====
 
-[NOTE]
-====
-This lab uses RHEL 10, where the `audit` package comes pre-installed. You will configure it to meet your security requirements.
-====
+
+
+
