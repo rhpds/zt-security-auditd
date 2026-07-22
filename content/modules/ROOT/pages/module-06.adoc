@@ -6,10 +6,9 @@ While preconfigured rules are excellent for compliance, you'll often need to cre
 
 Rule files in `/etc/audit/rules.d/` follow a priority-based naming convention:
 
-[source,bash,role="execute",subs=attributes+]
-----
-<priority>-<name>.rules
-----
+
+"<priority>-<name>.rules"
+
 
 Priority ranges and their purposes:
 

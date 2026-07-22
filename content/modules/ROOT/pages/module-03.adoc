@@ -52,28 +52,39 @@ type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=2 success=yes 
 
 === CWD Records
 
-**3.3** CWD (Current Working Directory) records show where a process was running when it triggered an audit event:
-[source,bash,role="execute",subs=attributes+]
-----
+CWD (Current Working Directory) records show where a process was running when it triggered an audit event:
+.....
+<<< OUTPUT ABRIDGED >>>
+
 type=CWD msg=audit(1234567890.123:456): cwd="/home/rhel"
-----
+
+<<< OUTPUT ABRIDGED >>>
+.....
 
 === PATH Records
 
-**3.4** PATH records capture file paths that were accessed or passed as arguments to system calls:
-[source,bash,role="execute",subs=attributes+]
-----
+PATH records capture file paths that were accessed or passed as arguments to system calls:
+.....
+<<< OUTPUT ABRIDGED >>>
+
 type=PATH msg=audit(1234567890.123:456): item=0 name="/etc/passwd"
   inode=12345 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00
   nametype=NORMAL
-----
+
+<<< OUTPUT ABRIDGED >>>
+.....
 
 
-**3.5** PROCTITLE records show the full command-line that triggered the audit event:
-[source,text]
-----
+
+PROCTITLE records show the full command-line that triggered the audit event:
+.....
+<<< OUTPUT ABRIDGED >>>
+
 type=PROCTITLE msg=audit(1234567890.123:456): proctitle=2F7573722F62696E2F636174002F6574632F706173737764
-----
+
+<<< OUTPUT ABRIDGED >>>
+.....
+
 
 [NOTE]
 ====
@@ -81,7 +92,7 @@ PROCTITLE values are hex-encoded. The `ausearch` tool automatically decodes them
 ====
 
 
-**3.6** Let's use `ausearch` to find specific events. For example, search for authentication events:
+**3.3** Let's use `ausearch` to find specific events. For example, search for authentication events:
 [source,bash,role="execute",subs=attributes+]
 ----
 sudo ausearch -m USER_AUTH -ts today | head -30

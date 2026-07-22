@@ -54,6 +54,9 @@ sudo service auditd condrestart
 sudo service auditd status
 ----
 
+You may need to "Ctrl+c" on your keyboard to close out the systemctl status.
+
+
 [IMPORTANT]
 ====
 The audit daemon is a special service that doesn't use systemctl for restart operations due to security requirements. Always use the `service` command with auditd.
