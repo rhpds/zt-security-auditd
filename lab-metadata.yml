@@ -19,8 +19,8 @@ lab:
     
   # Git references for deployment
   git_ref:
-    production: "v2.1"
-    development: "main"
+    production: "prod"
+    development: "dev"
 
 # DYNAMIC EXTRACTION SOURCES:
 # ===========================
