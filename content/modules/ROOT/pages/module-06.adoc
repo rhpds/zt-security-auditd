@@ -1,228 +1,157 @@
-= Generating Reports
+## Step 6: Custom Rule Creation
 
-== Overview
+While preconfigured rules are excellent for compliance, you'll often need to create custom audit rules tailored to your organization's specific security requirements. In this module, you'll learn how to create persistent, custom audit rules.
 
-Raw audit logs contain valuable security data, but they can be overwhelming. The audit package includes powerful tools for generating human-readable reports from audit data. In this module, you'll learn how to use `aureport` and related tools to extract meaningful insights.
+== Understanding Rule File Naming
 
-== Understanding Audit Reporting Tools
+Rule files in `/etc/audit/rules.d/` follow a priority-based naming convention:
 
-RHEL provides several tools for analyzing audit data:
+[source,bash,role="execute",subs=attributes+]
+----
+<priority>-<name>.rules
+----
 
-* **`aureport`** - Generates summary reports from audit logs
-* **`ausearch`** - Searches for specific events (we've used this already)
-* **`aulast`** - Shows login history from audit logs
-* **`aulastlog`** - Shows last login information
+Priority ranges and their purposes:
+
+* **10** - Kernel and buffer configuration
+* **20** - Rules that must match before more general rules
+* **30** - Main rules
+* **40** - Optional rules
+* **50** - Server-specific rules
+* **70** - Local/custom rules
+* **90** - Finalize rules
 
 [TIP]
 ====
-These audit-based tools are more reliable than traditional utmp-based commands like `last` and `lastlog` because they pull data from audit logs, which are harder to tamper with.
+Use priority **70** for your custom local rules. This ensures they load after the main STIG rules but before finalization.
 ====
 
-== Step 1: Generate a General Summary
 
-Let's start with a comprehensive summary of today's audit activity:
-
-[source,bash,role=execute]
+**6.1** First, let's create a rule to monitor the `ping` command and see it in action:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --summary
+sudo auditctl -a always,exit -F exe=/usr/bin/ping -k rhkey
 ----
 
-This report shows:
-* Total number of events
-* Breakdown by event type
-* Number of failed events
-* Anomalies detected
+This rule:
+* **`-a always,exit`** - Adds a rule that always logs at syscall exit
+* **`-F exe=/usr/bin/ping`** - Filters for the ping executable
+* **`-k rhkey`** - Tags events with the key "rhkey"
 
-== Step 2: File Access Report
 
-Generate a report showing which files were accessed:
-
-[source,bash,role=execute]
+**6.2** Let's trigger the rule by pinging localhost:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --summary -i --file
+ping -c 2 localhost
 ----
 
-The `-i` flag interprets numeric values (UIDs, GIDs, syscalls) into human-readable names.
-
-== Step 3: Executable Report
-
-See which programs were executed:
-
-[source,bash,role=execute]
+**6.3** Now search for the audit events:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --summary -i --executable
+sudo ausearch -k rhkey -ts recent
 ----
 
-This is useful for:
-* Identifying unexpected program execution
-* Tracking privileged command usage
-* Detecting malware or unauthorized tools
+You should see audit records showing the ping command execution!
 
-== Step 4: Login Report
-
-View authentication and login activity:
-
-[source,bash,role=execute]
+**6.4** The rule we just created is temporary. Let's make it persistent by creating a rule file:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --summary -i --login
+sudo touch /etc/audit/rules.d/70-rhkey_lab.rules
 ----
 
-This shows:
-* Successful logins
-* Failed login attempts
-* SSH sessions
-* Sudo usage
-
-[IMPORTANT]
-====
-High numbers of failed login attempts could indicate a brute-force attack in progress!
-====
-
-== Step 5: Custom Report by Key
-
-Remember the `rhkey` we used in earlier modules? Let's generate a report for events with that key:
-
-[source,bash,role=execute]
+**6.5** Add the rule to the file:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo ausearch --start today -k rhkey --raw | sudo aureport --summary -i --file
-----
-
-This pipeline:
-1. **`ausearch`** finds events with key "rhkey"
-2. **`--raw`** outputs in raw format
-3. **`aureport`** generates a summary report
-4. **`-i --file`** shows file access details
-
-== Step 6: Login History with aulast
-
-The `aulast` command shows login history from audit logs:
-
-[source,bash,role=execute]
-----
-sudo aulast
-----
-
-This displays:
-* Username
-* Terminal or remote host
-* Login time
-* Logout time (or "still logged in")
-* Duration
-
-For more detail, add the `--proof` flag:
-
-[source,bash,role=execute]
-----
-sudo aulast --proof | head -20
-----
-
-This shows the actual audit event IDs that prove each login occurred.
-
-== Step 7: Last Login Information
-
-View the last login for each user:
-
-[source,bash,role=execute]
-----
-sudo aulastlog
+echo "-a always,exit -S all -F exe=/usr/bin/ping -F key=rhkey" | sudo tee /etc/audit/rules.d/70-rhkey_lab.rules
 ----
 
 [NOTE]
 ====
-Unlike the traditional `lastlog` command which reads `/var/log/lastlog`, `aulastlog` derives information from audit logs. This makes it more tamper-resistant and reliable for security forensics.
+Notice the slight syntax difference in the file:
+* Command line: `-k rhkey`
+* Rule file: `-F key=rhkey`
+
+Both achieve the same result, but rule files use the `-F` format for consistency.
 ====
 
-== Advanced aureport Options
 
-Here are some additional useful `aureport` options:
-
-**Failed events only:**
-[source,bash,role=execute]
+**6.6** Load the new rule file:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --failed
+sudo augenrules --load
 ----
 
-**Authentication report:**
-[source,bash,role=execute]
+**6.7** Verify the rule is loaded:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --auth
-----
-
-**Modification events:**
-[source,bash,role=execute]
-----
-sudo aureport --start today --mods
+sudo auditctl -l | grep rhkey
 ----
 
-**Anomaly report:**
-[source,bash,role=execute]
+
+For systems with high audit activity, you may need to increase the kernel's audit backlog buffer to prevent event loss.
+
+**6.8** Set the buffer size temporarily:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo aureport --start today --anomaly
-----
-
-== Time Range Options
-
-All report commands support flexible time ranges:
-
-* `--start today` or `-ts today` - From midnight today
-* `--start recent` or `-ts recent` - Last 10 minutes
-* `--start yesterday` - From midnight yesterday
-* `--start boot` - Since last system boot
-* `--start "04/01/2026 00:00:00"` - Specific date/time
-* `--start today --end now` - Today until now
-
-== Practical Security Scenarios
-
-**Investigate failed login attempts:**
-[source,bash,role=execute]
-----
-sudo aureport --start today --auth --failed -i
+sudo auditctl -b 8192
 ----
 
-**Find who accessed sensitive files:**
-[source,bash,role=execute]
+**6.9** To make this persistent, create a kernel configuration rule file:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo ausearch -f /etc/shadow -ts today
-----
-
-**Track privileged command execution:**
-[source,bash,role=execute]
-----
-sudo ausearch -k access -ts boot --raw | sudo aureport -x -i
+sudo touch /etc/audit/rules.d/15-rhkey_kernel.rules
 ----
 
-== Summary
+**6.10** Add the buffer configuration:
+[source,bash,role="execute",subs=attributes+]
+----
+echo "-b 8192" | sudo tee /etc/audit/rules.d/15-rhkey_kernel.rules
+----
 
-In this module, you've learned:
+[TIP]
+====
+The `-b` option sets the maximum number of outstanding audit buffers. The default is often too small for busy systems. Increase it if you see "backlog limit exceeded" messages.
+====
 
-* How to use `aureport` to generate summary reports
-* Key report types: file access, executables, logins
-* How to use `aulast` and `aulastlog` for login tracking
-* How to create custom reports filtered by key
-* Time range options for reports
-* Practical security investigation techniques
 
-== Lab Complete!
+**6.11** Reload all rules to include the kernel configuration:
+[source,bash,role="execute",subs=attributes+]
+----
+sudo augenrules --load
+----
 
-Congratulations! You've completed the AuditD Security Auditing lab. You now know how to:
+**6.12** Verify the current backlog limit:
+[source,bash,role="execute",subs=attributes+]
+----
+sudo auditctl -s | grep backlog
+----
 
-✓ Install and configure AuditD
-✓ Understand and interpret audit logs
-✓ Create watch rules for files and directories
-✓ Deploy STIG-compliant preconfigured rules
-✓ Write custom audit rules for specific requirements
-✓ Generate comprehensive security reports
+== Common Rule Patterns
 
-=== Next Steps
+Here are some useful rule patterns you can adapt:
 
-To continue your security journey with RHEL, consider exploring:
+**Monitor file access:**
+[source,text]
+----
+-w /etc/passwd -p wa -k passwd_changes
+----
 
-* **SELinux** - Mandatory access controls
-* **OpenSCAP** - Security compliance scanning
-* **AIDE** - File integrity monitoring
-* **Firewalld** - Network security
+**Monitor directory:**
+[source,text]
+----
+-w /etc/ssh/ -p wa -k ssh_config
+----
 
-[quote, Security Best Practice]
-____
-"Regular review of audit logs is not just a compliance requirement—it's a critical security practice. Schedule time weekly to review aureport summaries and investigate anomalies."
-____
+**Monitor syscall by executable:**
+[source,text]
+----
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/sudo -k sudo_exec
+----
+
+**Monitor by user ID:**
+[source,text]
+----
+-a always,exit -F arch=b64 -S all -F uid=1001 -k user_1001_activity
+----
+
+Click "Next" to learn how to generate audit reports.

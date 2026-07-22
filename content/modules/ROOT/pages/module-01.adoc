@@ -1,99 +1,91 @@
-= Installation & Configuration
+= Welcome to Enabling RHEL Security: AuditD 101
+:toc:
+:icons: font
+:experimental:
 
-== Overview
+## Step 1: About This Lab
 
-Welcome to the AuditD Security Auditing lab! In this hands-on lab, you'll learn how to configure and use the Linux Audit framework (auditd) to monitor and track security-relevant events on your RHEL system.
+== Objective
 
-AuditD is a powerful tool that provides detailed logging of system calls, file access, authentication attempts, and other security events. It's essential for:
+By the end of this guided lab exercise, you will be able to:
 
-* Security compliance (STIG, PCI-DSS, HIPAA)
-* Forensic investigation
-* Detecting unauthorized access
-* Monitoring administrative actions
+* Configure auditd for production security monitoring.
+* Interpret raw audit log data.
+* Create targeted audit rules for compliance requirements.
+* Generate actionable security reports.
+* Investigate security events using audit tools.
+
+== Introduction
+
+This hands-on lab teaches you how to configure and use the Linux Audit framework (auditd) for security monitoring and compliance in Red Hat Enterprise Linux.
+
+AuditD is a powerful tool that provides detailed logging of system calls, file access, authentication attempts, and other security events. It is essential for security compliance (STIG, PCI-DSS, HIPAA), forensic investigation, detecting unauthorized access, and monitoring administrative actions.
+
+This lab prepares you for real-world security operations including compliance auditing, forensic investigation, threat detection, and change management.
+
+=== Prerequisites
+
+* Basic Linux command-line experience
+* Understanding of file permissions and user management
+* Familiarity with system administration concepts
+
+=== Lab Modules
+
+. Installation & Configuration — Set up and configure the audit daemon
+. Understanding Audit Logs — Learn to read and interpret audit log entries
+. Creating Watch Rules — Monitor specific files with audit rules
+. Preconfigured Rules — Deploy STIG-compliant rule sets
+. Custom Rule Creation — Write persistent custom audit rules
+. Generating Reports — Use aureport and related tools for security analysis
+
+== Lab Environment
+
+As part of this lab you will have access to 1 machine:
+
+* rhel
+
+* **Operating System**: Red Hat Enterprise Linux 10
+* **Required Packages**: `audit`, `audit-libs` (pre-installed)
+* **Estimated Time**: 30 minutes
+
+=== Environment Diagram
+
+[source,text]
+----
+                         Lab Environment
+    ┌──────────────────────────────────────────────────────┐
+    │                                                      │
+    │   ┌──────────────┐                                   │
+    │   │   bastion    │                                   │
+    │   │              │                                   │
+    │   │    rhel      │                                   │
+    │   └──────────────┘                                   │
+    │                                                      │
+    └──────────────────────────────────────────────────────┘
+----
+
+You will have a couple of accounts you will have access to.
+
+*rhel*
+
+* rhel
+* root
 
 [NOTE]
 ====
-This lab uses RHEL 10, where the audit package comes pre-installed. You'll configure it to meet your security requirements.
+*Lab Note: If Using Red Hat Demo System (RHPDS)*
+
+The terminal window to your right is already logged into the lab environment as the `rhel` user via SSH. All steps of this lab are to be completed as the `rhel` user on the bastion server.
+
+When you follow the next steps, you will have instructions followed by a small box with text that is meant to be used in the terminal. In the upper right corner there will be a couple of symbols. It should say something like "BASH", an icon of a clipboard, and an icon of a terminal.
+
+You should also be able to click the terminal icon and the command is then auto-typed into the machine terminal.
+
+Alternatively, you should be able to click the clipboard icon in the code box to copy the command, and you will either use the middle mouse button or right click and paste. The keyboard shortcuts for copy and paste (`Ctrl+C` and `Ctrl+V`) won't work in this environment.
+
+To move to the next step, click the *Next* button.
 ====
 
-== Step 1: Verify AuditD Installation
 
-First, let's verify that the audit package is installed on your system.
 
-[source,bash,role=execute]
-----
-dnf list installed audit
-----
 
-You should see the audit package listed. The audit daemon is a critical security component in RHEL.
-
-== Step 2: Review Default Configuration
-
-The audit daemon reads its configuration from `/etc/audit/auditd.conf` at boot time. Let's examine the default settings:
-
-[source,bash,role=execute]
-----
-sudo cat /etc/audit/auditd.conf
-----
-
-This configuration file controls various aspects of audit logging, including:
-
-* **log_file** - Where audit logs are stored (default: `/var/log/audit/audit.log`)
-* **max_log_file** - Maximum size of a single log file
-* **num_logs** - Number of log files to retain
-* **space_left** - Threshold for disk space warnings
-* **admin_space_left** - Critical disk space threshold
-
-[TIP]
-====
-The `space_left` parameter is particularly important for production systems. When available disk space reaches this threshold, auditd can trigger alerts or take defensive actions.
-====
-
-== Step 3: Modify Configuration Settings
-
-Let's create a backup of the configuration and then modify a setting to demonstrate configuration management.
-
-[source,bash,role=execute]
-----
-sudo cp /etc/audit/auditd.conf /etc/audit/auditd.conf.backup
-----
-
-Now let's increase the `space_left` threshold from 75 MB to 5120 MB (5 GB):
-
-[source,bash,role=execute]
-----
-sudo sed -i 's/space_left = 75/space_left = 5120/' /etc/audit/auditd.conf
-----
-
-== Step 4: Restart AuditD Service
-
-After making configuration changes, we need to restart the audit daemon to apply them:
-
-[source,bash,role=execute]
-----
-sudo service auditd condrestart
-----
-
-Verify the service is running:
-
-[source,bash,role=execute]
-----
-sudo service auditd status
-----
-
-[IMPORTANT]
-====
-The audit daemon is a special service that doesn't use systemctl for restart operations due to security requirements. Always use the `service` command with auditd.
-====
-
-== Summary
-
-In this module, you've:
-
-* Verified the AuditD installation
-* Reviewed the default configuration in `/etc/audit/auditd.conf`
-* Created a configuration backup
-* Modified the disk space threshold setting
-* Restarted the audit service to apply changes
-
-Click "Next" to learn about understanding audit log files in the next module.

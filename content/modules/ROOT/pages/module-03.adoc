@@ -1,103 +1,107 @@
-= Creating Watch Rules
+## Step 3: Understanding Audit Logs
 
-== Overview
+Audit logs contain detailed records of security-relevant events on your system. Understanding how to read and interpret these logs is essential for security monitoring and compliance.
 
-Watch rules allow you to monitor specific files or directories for any access or modification. This is crucial for tracking changes to sensitive files like configuration files, password databases, or critical system binaries.
 
-== Step 1: Create a Test File
-
-Let's create a test file that we'll monitor with audit rules:
-
-[source,bash,role=execute]
+**3.1** Audit logs are stored in `/var/log/audit/`. Let's examine this directory:
+[source,bash,role="execute",subs=attributes+]
 ----
-touch /home/rhel/log_everything_and_the_kitchen_sink.txt
+sudo ls -lahn /var/log/audit/
 ----
 
-Now let's add some content to this file:
+The primary log file is `audit.log`. Depending on your configuration, you may see rotated logs like `audit.log.1`, `audit.log.2`, etc.
 
-[source,bash,role=execute]
+
+**3.2** Let's look at recent audit log entries:
+[source,bash,role="execute",subs=attributes+]
 ----
-echo "Logging everything, including the kitchen sink, because why not? Let's see what happens!" > /home/rhel/log_everything_and_the_kitchen_sink.txt
-----
-
-== Step 2: Set Up a Watch Rule
-
-Now we'll create an audit rule to watch this file. The `auditctl` command allows us to add rules dynamically:
-
-[source,bash,role=execute]
-----
-sudo auditctl -w /home/rhel/log_everything_and_the_kitchen_sink.txt -S all -k rhel-docs-temp
+sudo tail -20 /var/log/audit/audit.log
 ----
 
-Let's break down this command:
+Audit log entries can seem cryptic at first, but they follow a consistent structure. Each entry contains:
 
-* **`-w`** - Specifies the file or directory to watch
-* **`-S all`** - Watches all system calls that interact with this file
-* **`-k rhel-docs-temp`** - Assigns a custom key for easy filtering in logs
+* **Timestamp** - When the event occurred
+* **Record Type** - What kind of event (SYSCALL, PATH, USER_AUTH, etc.)
+* **Event-specific fields** - Details about the event
 
 [TIP]
 ====
-The `-k` (key) parameter is extremely useful! It lets you tag audit rules with custom labels, making it easy to search for related events later using `ausearch -k <keyname>`.
+Don't be intimidated by the raw log format! The `ausearch` and `aureport` tools (which we'll use later) make it much easier to find and interpret audit events.
 ====
 
-== Step 3: Trigger Audit Events
+Audit logs use different record types to categorize events. Here are the most important ones:
 
-Let's access the file to generate some audit events:
+=== SYSCALL Records
 
-[source,bash,role=execute]
+SYSCALL records capture system call events. They include:
+
+* **uid** - User ID who made the call
+* **tty** - Terminal if interactive
+* **success** - Whether the call succeeded (yes/no)
+* **exe** - The executable that made the call
+* **comm** - Command name
+
+Example:
+[source,text]
 ----
-cat /home/rhel/log_everything_and_the_kitchen_sink.txt
+type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=2 success=yes exit=3
+  a0=7ffe1234abcd a1=0 a2=0 a3=7ffe1234def0 items=1 ppid=1234 pid=5678
+  auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0
+  tty=pts0 ses=1 comm="cat" exe="/usr/bin/cat" key=(null)
 ----
 
-== Step 4: Search Audit Logs for the File
+=== CWD Records
 
-Now let's use `ausearch` to find all audit events related to our watched file:
-
-[source,bash,role=execute]
+**3.3** CWD (Current Working Directory) records show where a process was running when it triggered an audit event:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo ausearch -f /home/rhel/log_everything_and_the_kitchen_sink.txt
+type=CWD msg=audit(1234567890.123:456): cwd="/home/rhel"
 ----
 
-You should see audit records showing:
-* When the file was created
-* When it was written to
-* When it was read (from our `cat` command)
-* The user who performed each action
-* The process that accessed the file
+=== PATH Records
+
+**3.4** PATH records capture file paths that were accessed or passed as arguments to system calls:
+[source,bash,role="execute",subs=attributes+]
+----
+type=PATH msg=audit(1234567890.123:456): item=0 name="/etc/passwd"
+  inode=12345 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00
+  nametype=NORMAL
+----
+
+
+**3.5** PROCTITLE records show the full command-line that triggered the audit event:
+[source,text]
+----
+type=PROCTITLE msg=audit(1234567890.123:456): proctitle=2F7573722F62696E2F636174002F6574632F706173737764
+----
 
 [NOTE]
 ====
-The `-f` flag searches by filename. You can also use `-k rhel-docs-temp` to search by the key we assigned to this rule.
+PROCTITLE values are hex-encoded. The `ausearch` tool automatically decodes them for readability.
 ====
 
-== Step 5: Search by Key
 
-Let's search using the key we assigned:
-
-[source,bash,role=execute]
+**3.6** Let's use `ausearch` to find specific events. For example, search for authentication events:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo ausearch -k rhel-docs-temp -ts today
+sudo ausearch -m USER_AUTH -ts today | head -30
 ----
 
-This is often more convenient than searching by filename, especially when you have multiple files monitored with the same purpose.
+This searches for:
+* `-m USER_AUTH` - Authentication record type
+* `-ts today` - Events from today
+* `head -30` - Shows first 30 lines
 
-== Understanding Watch Rule Persistence
-
-[IMPORTANT]
+[TIP]
 ====
-The rule we just created with `auditctl -w` is **temporary**. It will be lost when the system reboots.
+The `ausearch` tool supports many search criteria:
 
-In the next modules, we'll learn how to make rules persistent by adding them to `/etc/audit/rules.d/`.
+* `-m` - Message type (USER_AUTH, SYSCALL, etc.)
+* `-ts` - Start time (today, recent, yesterday, or a specific timestamp)
+* `-te` - End time
+* `-k` - Search by key (we'll create keyed rules later)
+* `-f` - Search by filename
+* `-ui` - Search by user ID
 ====
 
-== Summary
-
-In this module, you've learned:
-
-* How to create a watch rule with `auditctl -w`
-* The purpose of the `-S` (system call) and `-k` (key) options
-* How to search audit logs by filename using `ausearch -f`
-* How to search by key using `ausearch -k`
-* That `auditctl` rules are temporary and don't persist across reboots
-
-Click "Next" to learn about preconfigured STIG-compliant audit rules.
+Click "Next" to learn how to create watch rules in the next module.

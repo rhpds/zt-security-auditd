@@ -1,118 +1,79 @@
-= Preconfigured Rules
+## Step 4 Creating Watch Rules
 
-== Overview
+Watch rules allow you to monitor specific files or directories for any access or modification. This is crucial for tracking changes to sensitive files like configuration files, password databases, or critical system binaries.
 
-RHEL includes several sets of preconfigured audit rules designed to meet various compliance standards, including STIG (Security Technical Implementation Guide). These rules provide comprehensive security monitoring without requiring you to write rules from scratch.
 
-== Step 1: View Available Sample Rules
-
-RHEL ships with sample audit rule sets in `/usr/share/audit-rules/`. Let's see what's available:
-
-[source,bash,role=execute]
+**4.1** Let's create a test file that we'll monitor with audit rules:
+[source,bash,role="execute",subs=attributes+]
 ----
-ls /usr/share/audit-rules/
+touch /home/rhel/log_everything_and_the_kitchen_sink.txt
 ----
 
-You'll see several rule files:
-
-* **10-base-config.rules** - Basic kernel configuration
-* **30-stig.rules** - STIG-compliant security rules
-* **31-privileged.rules** - Monitors privileged command execution
-* **99-finalize.rules** - Finalizes audit configuration
-* And others for specific compliance frameworks
-
-[NOTE]
-====
-The numbers in the filenames (10, 30, 31, 99) determine the loading order. Lower numbers load first.
-====
-
-== Step 2: Remove Existing Rules
-
-Before applying the sample rules, let's clear any existing custom rules:
-
-[source,bash,role=execute]
+**4.2** Now let's add some content to this file:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo rm -f /etc/audit/rules.d/*
+echo "Logging everything, including the kitchen sink, because why not? Let's see what happens!" > /home/rhel/log_everything_and_the_kitchen_sink.txt
 ----
 
-[IMPORTANT]
-====
-This removes all rules from `/etc/audit/rules.d/`. Only do this in a lab environment or when you're intentionally replacing all audit rules.
-====
 
-== Step 3: Copy STIG-Compliant Rules
-
-Now let's copy the recommended STIG-compliant rule set:
-
-[source,bash,role=execute]
+**4.3** Now we'll create an audit rule to watch this file. The `auditctl` command allows us to add rules dynamically:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo cp /usr/share/audit-rules/10-base-config.rules /etc/audit/rules.d/
-sudo cp /usr/share/audit-rules/30-stig.rules /etc/audit/rules.d/
-sudo cp /usr/share/audit-rules/31-privileged.rules /etc/audit/rules.d/
-sudo cp /usr/share/audit-rules/99-finalize.rules /etc/audit/rules.d/
+sudo auditctl -w /home/rhel/log_everything_and_the_kitchen_sink.txt -S all -k rhel-docs-temp
 ----
 
-== Step 4: Load the Rules
+Let's break down this command:
 
-After copying rule files to `/etc/audit/rules.d/`, we need to load them into the running kernel:
-
-[source,bash,role=execute]
-----
-sudo augenrules --load
-----
-
-The `augenrules` command:
-* Reads all `.rules` files from `/etc/audit/rules.d/`
-* Merges them in numerical order
-* Generates `/etc/audit/audit.rules`
-* Loads the rules into the kernel
-
-== Step 5: Verify Loaded Rules
-
-Let's verify that the rules were loaded successfully:
-
-[source,bash,role=execute]
-----
-sudo auditctl -l | head -30
-----
-
-You should see many rules now active, including:
-
-* File access monitoring for critical system files
-* User and group management monitoring
-* Network configuration changes
-* Privileged command execution tracking
-* And many more security-relevant events
+* **`-w`** - Specifies the file or directory to watch
+* **`-S all`** - Watches all system calls that interact with this file
+* **`-k rhel-docs-temp`** - Assigns a custom key for easy filtering in logs
 
 [TIP]
 ====
-The STIG rules are comprehensive and designed for high-security environments. They monitor:
-
-* Changes to `/etc/passwd`, `/etc/group`, `/etc/shadow`
-* Modifications to audit configuration itself
-* System calls that could compromise security
-* Privileged operations and sudo usage
+The `-k` (key) parameter is extremely useful! It lets you tag audit rules with custom labels, making it easy to search for related events later using `ausearch -k <keyname>`.
 ====
 
-== What These Rules Monitor
 
-The STIG rules you just loaded track:
+**4.4** Let's access the file to generate some audit events:
+[source,bash,role="execute",subs=attributes+]
+----
+cat /home/rhel/log_everything_and_the_kitchen_sink.txt
+----
 
-* **User Account Changes** - Creation, deletion, or modification of user accounts
-* **Authentication Events** - Login attempts (successful and failed)
-* **File Permissions** - Changes to file ownership or permissions
-* **Network Configuration** - Firewall rules, network interface changes
-* **Kernel Modules** - Loading or unloading of kernel modules
-* **Privileged Commands** - Execution of setuid/setgid programs
+**4.5** Now let's use `ausearch` to find all audit events related to our watched file:
+[source,bash,role="execute",subs=attributes+]
+----
+sudo ausearch -f /home/rhel/log_everything_and_the_kitchen_sink.txt
+----
 
-== Summary
+You should see audit records showing:
+* When the file was created
+* When it was written to
+* When it was read (from our `cat` command)
+* The user who performed each action
+* The process that accessed the file
 
-In this module, you've learned:
+[NOTE]
+====
+The `-f` flag searches by filename. You can also use `-k rhel-docs-temp` to search by the key we assigned to this rule.
+====
 
-* Where to find preconfigured audit rules (`/usr/share/audit-rules/`)
-* How to copy STIG-compliant rules to `/etc/audit/rules.d/`
-* How to use `augenrules --load` to apply rule changes
-* How to verify loaded rules with `auditctl -l`
-* What types of events the STIG rules monitor
 
-Click "Next" to learn how to create your own custom audit rules.
+**4.6** Let's search using the key we assigned:
+[source,bash,role="execute",subs=attributes+]
+----
+sudo ausearch -k rhel-docs-temp -ts today
+----
+
+This is often more convenient than searching by filename, especially when you have multiple files monitored with the same purpose.
+
+== Understanding Watch Rule Persistence
+
+[IMPORTANT]
+====
+The rule we just created with `auditctl -w` is **temporary**. It will be lost when the system reboots.
+
+In the next modules, we'll learn how to make rules persistent by adding them to `/etc/audit/rules.d/`.
+====
+
+Click "Next" to learn about preconfigured STIG-compliant audit rules.

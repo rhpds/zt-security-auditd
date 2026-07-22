@@ -5,25 +5,19 @@ antora:
   dir: www
   modules:
     - name: module-01
-      label: "Installation & Configuration"
-      solveButton: false
+      label: "Step 1"
     - name: module-02
-      label: "Understanding Audit Logs"
-      solveButton: false
+      label: "Step 2"
     - name: module-03
-      label: "Creating Watch Rules"
-      solveButton: false
+      label: "Step 3"
     - name: module-04
-      label: "Preconfigured Rules"
-      solveButton: false
+      label: "Step 4"
     - name: module-05
-      label: "Custom Rule Creation"
-      solveButton: false
+      label: "Step 5"
     - name: module-06
-      label: "Generating Reports"
-      solveButton: false
-
+      label: "Step 6"
+    - name: module-07
+      label: "Step 7"
 tabs:
   - name: ">_ terminal"
     url: /wetty
-

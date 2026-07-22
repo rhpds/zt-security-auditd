@@ -1,130 +1,63 @@
-= Understanding Audit Logs
+## Step 2: Verify AuditD Installation
 
-== Overview
 
-Audit logs contain detailed records of security-relevant events on your system. Understanding how to read and interpret these logs is essential for security monitoring and compliance.
+**2.1** First, let's verify that the audit package is installed on your system.
 
-== Step 1: Locate Audit Log Files
-
-Audit logs are stored in `/var/log/audit/`. Let's examine this directory:
-
-[source,bash,role=execute]
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo ls -lahn /var/log/audit/
+dnf list installed audit
 ----
 
-The primary log file is `audit.log`. Depending on your configuration, you may see rotated logs like `audit.log.1`, `audit.log.2`, etc.
+You should see the audit package listed. The audit daemon is a critical security component in RHEL.
 
-== Step 2: Examine Log Contents
 
-Let's look at recent audit log entries:
-
-[source,bash,role=execute]
+**2.2** The audit daemon reads its configuration from `/etc/audit/auditd.conf` at boot time. Let's examine the default settings:
+[source,bash,role="execute",subs=attributes+]
 ----
-sudo tail -20 /var/log/audit/audit.log
+sudo cat /etc/audit/auditd.conf
 ----
 
-Audit log entries can seem cryptic at first, but they follow a consistent structure. Each entry contains:
+This configuration file controls various aspects of audit logging, including:
 
-* **Timestamp** - When the event occurred
-* **Record Type** - What kind of event (SYSCALL, PATH, USER_AUTH, etc.)
-* **Event-specific fields** - Details about the event
+* **log_file** - Where audit logs are stored (default: `/var/log/audit/audit.log`)
+* **max_log_file** - Maximum size of a single log file
+* **num_logs** - Number of log files to retain
+* **space_left** - Threshold for disk space warnings
+* **admin_space_left** - Critical disk space threshold
 
 [TIP]
 ====
-Don't be intimidated by the raw log format! The `ausearch` and `aureport` tools (which we'll use later) make it much easier to find and interpret audit events.
+The `space_left` parameter is particularly important for production systems. When available disk space reaches this threshold, auditd can trigger alerts or take defensive actions.
 ====
 
-== Step 3: Understanding Key Record Types
-
-Audit logs use different record types to categorize events. Here are the most important ones:
-
-=== SYSCALL Records
-
-SYSCALL records capture system call events. They include:
-
-* **uid** - User ID who made the call
-* **tty** - Terminal if interactive
-* **success** - Whether the call succeeded (yes/no)
-* **exe** - The executable that made the call
-* **comm** - Command name
-
-Example:
-[source,text]
+**2.3** Let's create a backup of the configuration and then modify a setting to demonstrate configuration management.
+[source,bash,role="execute",subs=attributes+]
 ----
-type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=2 success=yes exit=3
-  a0=7ffe1234abcd a1=0 a2=0 a3=7ffe1234def0 items=1 ppid=1234 pid=5678
-  auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0
-  tty=pts0 ses=1 comm="cat" exe="/usr/bin/cat" key=(null)
+sudo cp /etc/audit/auditd.conf /etc/audit/auditd.conf.backup
 ----
 
-=== CWD Records
-
-CWD (Current Working Directory) records show where a process was running when it triggered an audit event:
-
-[source,text]
+**2.4** Now let's increase the `space_left` threshold from 75 MB to 5120 MB (5 GB):
+[source,bash,role="execute",subs=attributes+]
 ----
-type=CWD msg=audit(1234567890.123:456): cwd="/home/rhel"
+sudo sed -i 's/space_left = 75/space_left = 5120/' /etc/audit/auditd.conf
 ----
 
-=== PATH Records
-
-PATH records capture file paths that were accessed or passed as arguments to system calls:
-
-[source,text]
+**2.5** After making configuration changes, we need to restart the audit daemon to apply them:
+[source,bash,role="execute",subs=attributes+]
 ----
-type=PATH msg=audit(1234567890.123:456): item=0 name="/etc/passwd"
-  inode=12345 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00
-  nametype=NORMAL
+sudo service auditd condrestart
 ----
 
-=== PROCTITLE Records
-
-PROCTITLE records show the full command-line that triggered the audit event:
-
-[source,text]
+**2.6** Verify the service is running:
+[source,bash,role="execute",subs=attributes+]
 ----
-type=PROCTITLE msg=audit(1234567890.123:456): proctitle=2F7573722F62696E2F636174002F6574632F706173737764
+sudo service auditd status
 ----
 
-[NOTE]
+[IMPORTANT]
 ====
-PROCTITLE values are hex-encoded. The `ausearch` tool automatically decodes them for readability.
+The audit daemon is a special service that doesn't use systemctl for restart operations due to security requirements. Always use the `service` command with auditd.
 ====
 
-== Step 4: Search for Specific Events
 
-Let's use `ausearch` to find specific events. For example, search for authentication events:
-
-[source,bash,role=execute]
-----
-sudo ausearch -m USER_AUTH -ts today | head -30
-----
-
-This searches for:
-* `-m USER_AUTH` - Authentication record type
-* `-ts today` - Events from today
-* `head -30` - Shows first 30 lines
-
-[TIP]
-====
-The `ausearch` tool supports many search criteria:
-
-* `-m` - Message type (USER_AUTH, SYSCALL, etc.)
-* `-ts` - Start time (today, recent, yesterday, or a specific timestamp)
-* `-te` - End time
-* `-k` - Search by key (we'll create keyed rules later)
-* `-f` - Search by filename
-* `-ui` - Search by user ID
-====
-
-== Summary
-
-In this module, you've learned:
-
-* Where audit logs are stored (`/var/log/audit/audit.log`)
-* The structure of audit log entries
-* Key record types: SYSCALL, CWD, PATH, and PROCTITLE
-* How to use `ausearch` to find specific events
-
-Click "Next" to learn how to create watch rules in the next module.
+Click "Next" to learn about understanding audit log files in the next module.
