@@ -2,7 +2,7 @@
 # Single Point of Truth for Lab Information
 
 lab:
-  name: "Security AuditD Lab"
+  name: "Enabling RHEL Security AuditD 101"
   shortname: "zt-security-auditd"
   maintainer: "Joshua Loscar (jloscar@redhat.com)" 
   
