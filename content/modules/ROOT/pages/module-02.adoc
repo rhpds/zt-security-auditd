@@ -42,24 +42,35 @@ sudo cp /etc/audit/auditd.conf /etc/audit/auditd.conf.backup
 sudo sed -i 's/space_left = 75/space_left = 5120/' /etc/audit/auditd.conf
 ----
 
-**2.5** After making configuration changes, we need to restart the audit daemon to apply them:
+**2.5** After making configuration changes, we need to tell the audit daemon to reload its configuration:
 [source,bash,role="execute",subs=attributes+]
 ----
-sudo service auditd condrestart
+sudo auditctl --signal HUP
 ----
+The audit daemon is a critical system service. Systemd configuration prevents us from starting, stopping or restarting it for security reasons.
 
-**2.6** Verify the service is running:
+
+**2.6** Verify the service is running with the changed parameters:
 [source,bash,role="execute",subs=attributes+]
 ----
 sudo service auditd status
 ----
+
+You will see that we requested the reload.
+Oct 14 03:58:48 rhel auditd[325837]: config change requested by pid=371301 auid=1000 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0>
+Oct 14 03:58:48 rhel auditd[325837]: No plugins found, not dispatching events
 
 You may need to "Ctrl+c" on your keyboard to close out the systemctl status.
 
 
 [IMPORTANT]
 ====
-The audit daemon is a special service that doesn't use systemctl for restart operations due to security requirements. Always use the `service` command with auditd.
+The audit daemon is a special service that doesn't use systemctl for restart operations due to security requirements.
+It is best to ensure that it continually runs. Use the above command to signal configuration reloads. To update rulesets, reload them using:
+
+----
+sudo augenrules --load
+----
 ====
 
 
